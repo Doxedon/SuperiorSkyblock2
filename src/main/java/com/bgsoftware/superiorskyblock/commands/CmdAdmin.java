@@ -44,6 +44,7 @@ public final class CmdAdmin implements ISuperiorCommand {
         registerCommand(new CmdAdminChest(), false);
         registerCommand(new CmdAdminClearGenerator(), false);
         registerCommand(new CmdAdminClose(), false);
+        registerCommand(new CmdAdminCmdAll(), false);
         registerCommand(new CmdAdminCount(), false);
         registerCommand(new CmdAdminDebug(), false);
         registerCommand(new CmdAdminDelWarp(), false);
@@ -99,6 +100,8 @@ public final class CmdAdmin implements ISuperiorCommand {
         registerCommand(new CmdAdminStats(), false);
         registerCommand(new CmdAdminSyncUpgrades(), false);
         registerCommand(new CmdAdminTeleport(), false);
+        registerCommand(new CmdAdminTitle(), false);
+        registerCommand(new CmdAdminTitleAll(), false);
         registerCommand(new CmdAdminUnignore(), false);
         registerCommand(new CmdAdminUnlockWorld(), false);
         registerCommand(new CmdAdminWithdraw(), false);

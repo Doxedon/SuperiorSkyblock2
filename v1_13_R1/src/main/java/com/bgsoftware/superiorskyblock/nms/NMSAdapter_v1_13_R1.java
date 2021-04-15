@@ -1,5 +1,6 @@
 package com.bgsoftware.superiorskyblock.nms;
 
+import com.bgsoftware.common.reflection.ReflectField;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
@@ -13,6 +14,7 @@ import net.minecraft.server.v1_13_R1.Block;
 import net.minecraft.server.v1_13_R1.BlockPosition;
 import net.minecraft.server.v1_13_R1.ChatMessage;
 import net.minecraft.server.v1_13_R1.Chunk;
+import net.minecraft.server.v1_13_R1.Entity;
 import net.minecraft.server.v1_13_R1.EntityPlayer;
 import net.minecraft.server.v1_13_R1.IBlockData;
 import net.minecraft.server.v1_13_R1.Item;
@@ -44,6 +46,7 @@ import org.bukkit.craftbukkit.v1_13_R1.CraftServer;
 import org.bukkit.craftbukkit.v1_13_R1.CraftWorld;
 import org.bukkit.craftbukkit.v1_13_R1.block.data.CraftBlockData;
 import org.bukkit.craftbukkit.v1_13_R1.entity.CraftAnimals;
+import org.bukkit.craftbukkit.v1_13_R1.entity.CraftEntity;
 import org.bukkit.craftbukkit.v1_13_R1.entity.CraftPlayer;
 import org.bukkit.craftbukkit.v1_13_R1.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
@@ -62,6 +65,8 @@ import java.util.Optional;
 
 @SuppressWarnings("unused")
 public final class NMSAdapter_v1_13_R1 implements NMSAdapter {
+
+    private static final ReflectField<Integer> PORTAL_TICKS = new ReflectField<>(Entity.class, int.class, "ao");
 
     private final SuperiorSkyblockPlugin plugin = SuperiorSkyblockPlugin.getPlugin();
 
@@ -95,24 +100,39 @@ public final class NMSAdapter_v1_13_R1 implements NMSAdapter {
     }
 
     @Override
+    public void setSpawnerDelay(CreatureSpawner creatureSpawner, int spawnDelay) {
+        Location location = creatureSpawner.getLocation();
+        TileEntityMobSpawner mobSpawner = (TileEntityMobSpawner)((CraftWorld) location.getWorld())
+                .getTileEntityAt(location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        mobSpawner.getSpawner().spawnDelay = spawnDelay;
+    }
+
+    @Override
     public void setWorldBorder(SuperiorPlayer superiorPlayer, Island island) {
         try {
             if(!plugin.getSettings().worldBordersEnabled)
                 return;
 
+            Player player = superiorPlayer.asPlayer();
+
+            if(player == null)
+                return;
+
+            WorldServer worldServer = ((CraftWorld) player.getWorld()).getHandle();
+
             WorldBorder worldBorder;
 
             if(!superiorPlayer.hasWorldBorderEnabled() || island == null || (!plugin.getSettings().spawnWorldBorder && island.isSpawn())){
-                worldBorder = ((CraftWorld) superiorPlayer.getWorld()).getHandle().getWorldBorder();
+                worldBorder = worldServer.getWorldBorder();
             }
 
             else {
                 worldBorder = new WorldBorder();
 
-                worldBorder.world = ((CraftWorld) superiorPlayer.getWorld()).getHandle();
+                worldBorder.world = worldServer;
                 worldBorder.setSize((island.getIslandSize() * 2) + 1);
 
-                org.bukkit.World.Environment environment = superiorPlayer.getWorld().getEnvironment();
+                org.bukkit.World.Environment environment = player.getWorld().getEnvironment();
 
                 Location center = island.getCenter(environment);
                 worldBorder.setCenter(center.getX(), center.getZ());
@@ -128,15 +148,17 @@ public final class NMSAdapter_v1_13_R1 implements NMSAdapter {
             }
 
             PacketPlayOutWorldBorder packetPlayOutWorldBorder = new PacketPlayOutWorldBorder(worldBorder, PacketPlayOutWorldBorder.EnumWorldBorderAction.INITIALIZE);
-            ((CraftPlayer) superiorPlayer.asPlayer()).getHandle().playerConnection.sendPacket(packetPlayOutWorldBorder);
+            ((CraftPlayer) player).getHandle().playerConnection.sendPacket(packetPlayOutWorldBorder);
         } catch (NullPointerException ignored) {}
     }
 
     @Override
     public void setSkinTexture(SuperiorPlayer superiorPlayer) {
-        EntityPlayer entityPlayer = ((CraftPlayer) superiorPlayer.asPlayer()).getHandle();
-        Optional<Property> optional = entityPlayer.getProfile().getProperties().get("textures").stream().findFirst();
-        optional.ifPresent(property -> setSkinTexture(superiorPlayer, property));
+        superiorPlayer.runIfOnline(player -> {
+            EntityPlayer entityPlayer = ((CraftPlayer) player).getHandle();
+            Optional<Property> optional = entityPlayer.getProfile().getProperties().get("textures").stream().findFirst();
+            optional.ifPresent(property -> setSkinTexture(superiorPlayer, property));
+        });
     }
 
     @Override
@@ -306,6 +328,11 @@ public final class NMSAdapter_v1_13_R1 implements NMSAdapter {
     @Override
     public void sendTitle(Player player, String title, String subtitle, int fadeIn, int duration, int fadeOut) {
         player.sendTitle(title, subtitle, fadeIn, duration, fadeOut);
+    }
+
+    @Override
+    public int getPortalTicks(org.bukkit.entity.Entity entity) {
+        return PORTAL_TICKS.get(((CraftEntity) entity).getHandle());
     }
 
     private static class CustomTileEntityHopper extends TileEntityHopper{

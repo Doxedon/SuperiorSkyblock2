@@ -1,9 +1,9 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.api.enums.BorderColor;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.commands.CommandUtils;
@@ -60,7 +60,7 @@ public final class MenuBorderColor extends SuperiorMenu {
 
         Executor.sync(() -> {
             previousMove = false;
-            superiorPlayer.asPlayer().closeInventory();
+            e.getWhoClicked().closeInventory();
         }, 1L);
     }
 
@@ -95,7 +95,11 @@ public final class MenuBorderColor extends SuperiorMenu {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         Registry<Character, List<Integer>> charSlots = FileUtils.loadGUI(menuBorderColor, "border-color.yml", cfg);

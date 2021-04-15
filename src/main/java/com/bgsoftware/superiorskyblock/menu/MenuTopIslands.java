@@ -1,11 +1,11 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.SortingType;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.hooks.PlaceholderHook;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
@@ -196,7 +196,7 @@ public final class MenuTopIslands extends PagedSuperiorMenu<Island> {
         if(island != null) {
             SoundWrapper sound = (SoundWrapper) getData("island-sound");
             if(sound != null)
-                sound.playSound(superiorPlayer.asPlayer());
+                superiorPlayer.runIfOnline(sound::playSound);
             //noinspection unchecked
             List<String> commands = (List<String>) getData("island-commands");
             if(commands != null)
@@ -222,7 +222,7 @@ public final class MenuTopIslands extends PagedSuperiorMenu<Island> {
 
         SoundWrapper sound = (SoundWrapper) getData("no-island-sound");
         if(sound != null)
-            sound.playSound(superiorPlayer.asPlayer());
+            superiorPlayer.runIfOnline(sound::playSound);
         //noinspection unchecked
         List<String> commands = (List<String>) getData("no-island-commands");
         if(commands != null)
@@ -242,7 +242,11 @@ public final class MenuTopIslands extends PagedSuperiorMenu<Island> {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         sortGlowWhenSelected = cfg.getBoolean("sort-glow-when-selected", false);
@@ -275,23 +279,21 @@ public final class MenuTopIslands extends PagedSuperiorMenu<Island> {
                         backButton = slot;
                     }
 
-                    else{
-                        menuTopIslands.addFillItem(slot, FileUtils.getItemStack("biomes.yml", cfg.getConfigurationSection("items." + ch)));
-                        menuTopIslands.addCommands(slot, cfg.getStringList("commands." + ch));
-                        menuTopIslands.addSound(slot, FileUtils.getSound(cfg.getConfigurationSection("sounds." + ch)));
+                    menuTopIslands.addFillItem(slot, FileUtils.getItemStack("top-islands.yml", cfg.getConfigurationSection("items." + ch)));
+                    menuTopIslands.addCommands(slot, cfg.getStringList("commands." + ch));
+                    menuTopIslands.addSound(slot, FileUtils.getSound(cfg.getConfigurationSection("sounds." + ch)));
 
-                        String permission = cfg.getString("permissions." + ch + ".permission");
-                        SoundWrapper noAccessSound = FileUtils.getSound(cfg.getConfigurationSection("permissions." + ch + ".no-access-sound"));
-                        menuTopIslands.addPermission(slot, permission, noAccessSound);
+                    String permission = cfg.getString("permissions." + ch + ".permission");
+                    SoundWrapper noAccessSound = FileUtils.getSound(cfg.getConfigurationSection("permissions." + ch + ".no-access-sound"));
+                    menuTopIslands.addPermission(slot, permission, noAccessSound);
 
-                        if(cfg.contains("items." + ch + ".sorting-type")) {
-                            String sortingType = cfg.getString("items." + ch + ".sorting-type");
-                            menuTopIslands.addData(slot + "", sortingType);
-                            //noinspection unchecked
-                            List<Integer> slots = (List<Integer>) menuTopIslands.getData(sortingType, new ArrayList<>());
-                            slots.add(slot);
-                            menuTopIslands.addData(sortingType, slots);
-                        }
+                    if(cfg.contains("items." + ch + ".sorting-type")) {
+                        String sortingType = cfg.getString("items." + ch + ".sorting-type");
+                        menuTopIslands.addData(slot + "", sortingType);
+                        //noinspection unchecked
+                        List<Integer> slots = (List<Integer>) menuTopIslands.getData(sortingType, new ArrayList<>());
+                        slots.add(slot);
+                        menuTopIslands.addData(sortingType, slots);
                     }
 
                     if(!charSlots.containsKey(ch))

@@ -1,11 +1,11 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.island.IslandFlag;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.items.ItemBuilder;
@@ -46,7 +46,7 @@ public final class MenuSettings extends PagedSuperiorMenu<IslandFlag> {
         SoundWrapper noAccessSound = (SoundWrapper) getData(settingsName + "-no-access-sound");
         if(!permission.isEmpty() && !superiorPlayer.hasPermission(permission)){
             if(noAccessSound != null)
-                noAccessSound.playSound(superiorPlayer.asPlayer());
+                noAccessSound.playSound(event.getWhoClicked());
             return;
         }
 
@@ -61,7 +61,7 @@ public final class MenuSettings extends PagedSuperiorMenu<IslandFlag> {
 
         SoundWrapper soundWrapper = (SoundWrapper) getData(settingsName + "-sound");
         if (soundWrapper != null)
-            soundWrapper.playSound(superiorPlayer.asPlayer());
+            soundWrapper.playSound(event.getWhoClicked());
         //noinspection unchecked
         List<String> commands = (List<String>) getData(settingsName + "-commands");
         if (commands != null)
@@ -106,7 +106,11 @@ public final class MenuSettings extends PagedSuperiorMenu<IslandFlag> {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         Registry<Character, List<Integer>> charSlots = FileUtils.loadGUI(menuSettings, "settings.yml", cfg);

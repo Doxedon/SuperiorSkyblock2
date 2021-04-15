@@ -1,8 +1,8 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.islands.IslandUtils;
 import com.bgsoftware.superiorskyblock.utils.registry.Registry;
@@ -24,6 +24,9 @@ public final class MenuConfirmBan extends SuperiorMenu {
     protected void onPlayerClick(InventoryClickEvent e) {
         Island island = superiorPlayer.getIsland();
 
+        if(island == null)
+            return;
+
         boolean closeMenu = false;
 
         if(confirmSlot.contains(e.getRawSlot())){
@@ -36,7 +39,7 @@ public final class MenuConfirmBan extends SuperiorMenu {
 
         if(closeMenu){
             previousMove = false;
-            superiorPlayer.asPlayer().closeInventory();
+            e.getWhoClicked().closeInventory();
         }
     }
 

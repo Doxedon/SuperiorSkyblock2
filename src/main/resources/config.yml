@@ -112,6 +112,9 @@ stacked-blocks:
   # Custom name for the blocks.
   custom-name: '&ex{0} {1}'
 
+  # A list of worlds that blocks cannot stack in.
+  disabled-worlds: []
+
   # A list of whitelisted blocks that will get stacked when players have stack mode toggled on.
   whitelisted:
   - 'DIAMOND_BLOCK'
@@ -282,6 +285,8 @@ worlds:
     # Custom name for the nether world.
     # When empty, the name will be "<island-world>_nether"
     name: ''
+    # Should the schematic of nether will not be counted towards worth and level values?
+    schematic-offset: true
   end:
     # Should the end world be enabled?
     enabled: false
@@ -290,6 +295,11 @@ worlds:
     # Custom name for the end world.
     # When empty, the name will be "<island-world>_the_end"
     name: ''
+    # Should the schematic of end will not be counted towards worth and level values?
+    schematic-offset: true
+    # Should dragon fight be enabled? This will spawn dragons for each island.
+    # This feature is in beta, expect bugs!
+    dragon-fight: false
   # Should the plugin optimize the island worlds?
   # When enabled, only chunks of islands will be saved from the island worlds.
   optimize: false
@@ -365,12 +375,20 @@ disband-confirm: true
 # Should a confirm gui be displayed when /is kick is executed.
 kick-confirm: true
 
+# Should a confirm gui be displayed when /is leave is executed.
+leave-confirm: true
+
 # If you want a specific spawners provider to use, specify it here.
 # Providers: Auto, WildStacker, EpicSpawners, MergedSpawner, PvpingSpawners, SilkSpawners, RoseStacker
 spawners-provider: 'AUTO'
 
 # Should inventories of island members get cleared after disbanding their island?
 disband-inventory-clear: true
+
+# Should island bank balance be refunded upon island disband?
+# When set to 100, all the balance will be refunded.
+# When set to 0, no balance will be refunded.
+disband-refund: 0
 
 # All settings related to island names.
 island-names:
@@ -409,10 +427,6 @@ clear-on-join: false
 
 # Should players be able to rate their own islands?
 rate-own-island: false
-
-# Should the bonus affect the island level?
-# When true, the formula will be used.
-bonus-affect-level: true
 
 # A list of default settings for new islands.
 # You can find a list of settings here: https://bg-software.com/superiorskyblock/docs/island-settings/
@@ -717,3 +731,6 @@ physics-listener: true
 # Should players be charged when using island warps?
 # You can set an amount of money to charge, 0 to disable the feature.
 charge-on-warp: 0
+
+# Should island warps be public by default?
+public-warps: false

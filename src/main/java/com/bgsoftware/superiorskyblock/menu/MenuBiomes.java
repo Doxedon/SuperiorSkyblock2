@@ -1,10 +1,10 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.events.EventResult;
@@ -45,22 +45,25 @@ public final class MenuBiomes extends SuperiorMenu {
 
                 if(slot == e.getRawSlot()){
                     if (superiorPlayer.hasPermission(permission)) {
-                        EventResult<Biome> event = EventsCaller.callIslandBiomeChangeEvent(superiorPlayer, superiorPlayer.getIsland(), biome);
+                        Island island = superiorPlayer.getIsland();
+                        assert island != null;
+                        EventResult<Biome> event = EventsCaller.callIslandBiomeChangeEvent(superiorPlayer, island, biome);
                         if(!event.isCancelled()){
                             SoundWrapper soundWrapper = (SoundWrapper) getData(biomeName + "-has-access-item-sound");
-                            if (soundWrapper != null)
-                                soundWrapper.playSound(superiorPlayer.asPlayer());
+                            if(soundWrapper != null)
+                                soundWrapper.playSound(e.getWhoClicked());
                             //noinspection unchecked
                             List<String> commands = (List<String>) getData(biomeName + "-has-access-item-commands");
                             if (commands != null)
-                                commands.forEach(command -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command.replace("%player%", superiorPlayer.getName())));
+                                commands.forEach(command -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                                        command.replace("%player%", superiorPlayer.getName())));
 
-                            superiorPlayer.getIsland().setBiome(event.getResult());
+                            island.setBiome(event.getResult());
                             Locale.CHANGED_BIOME.send(superiorPlayer, event.getResult().name().toLowerCase());
 
                             Executor.sync(() -> {
                                 previousMove = false;
-                                superiorPlayer.asPlayer().closeInventory();
+                                e.getWhoClicked().closeInventory();
                             }, 1L);
 
                             break;
@@ -69,7 +72,7 @@ public final class MenuBiomes extends SuperiorMenu {
 
                     SoundWrapper soundWrapper = (SoundWrapper) getData(biomeName + "-no-access-item-sound");
                     if(soundWrapper != null)
-                        soundWrapper.playSound(superiorPlayer.asPlayer());
+                        soundWrapper.playSound(e.getWhoClicked());
                     //noinspection unchecked
                     List<String> commands = (List<String>) getData(biomeName + "-no-access-item-commands");
                     if(commands != null)
@@ -91,22 +94,24 @@ public final class MenuBiomes extends SuperiorMenu {
         Inventory inv = super.buildInventory(titleReplacer);
         Island island = superiorPlayer.getIsland();
 
-        for(Biome biome : Biome.values()){
-            String biomeName = biome.name().toLowerCase();
-            if(containsData(biomeName + "-has-access-item")) {
-                ItemBuilder biomeItem = (ItemBuilder) getData(biomeName + "-has-access-item");
-                String permission = (String) getData(biomeName + "-permission");
-                int slot = (int) getData(biomeName + "-slot");
+        if(island != null) {
+            for (Biome biome : Biome.values()) {
+                String biomeName = biome.name().toLowerCase();
+                if (containsData(biomeName + "-has-access-item")) {
+                    ItemBuilder biomeItem = (ItemBuilder) getData(biomeName + "-has-access-item");
+                    String permission = (String) getData(biomeName + "-permission");
+                    int slot = (int) getData(biomeName + "-slot");
 
-                if(!superiorPlayer.hasPermission(permission))
-                    biomeItem = (ItemBuilder) getData(biomeName + "-no-access-item");
+                    if (!superiorPlayer.hasPermission(permission))
+                        biomeItem = (ItemBuilder) getData(biomeName + "-no-access-item");
 
-                biomeItem = biomeItem.clone();
+                    biomeItem = biomeItem.clone();
 
-                if(currentBiomeGlow && island.getBiome() == biome)
-                    biomeItem.withEnchant(EnchantsUtils.getGlowEnchant(), 1);
+                    if (currentBiomeGlow && island.getBiome() == biome)
+                        biomeItem.withEnchant(EnchantsUtils.getGlowEnchant(), 1);
 
-                inv.setItem(slot, biomeItem.build(superiorPlayer));
+                    inv.setItem(slot, biomeItem.build(superiorPlayer));
+                }
             }
         }
 
@@ -124,7 +129,11 @@ public final class MenuBiomes extends SuperiorMenu {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         currentBiomeGlow = cfg.getBoolean("current-biome-glow", false);
@@ -154,7 +163,8 @@ public final class MenuBiomes extends SuperiorMenu {
                     if(backButtonChar == ch){
                         backButton = slot;
                     }
-                    else if(cfg.contains("items." + ch + ".biome")){
+
+                    if(cfg.contains("items." + ch + ".biome")){
                         ConfigurationSection itemSection = cfg.getConfigurationSection("items." + ch);
                         ConfigurationSection soundSection = cfg.getConfigurationSection("sounds." + ch);
                         ConfigurationSection commandSection = cfg.getConfigurationSection("commands." + ch);

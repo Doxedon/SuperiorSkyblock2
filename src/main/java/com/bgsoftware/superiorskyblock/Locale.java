@@ -1,7 +1,7 @@
 package com.bgsoftware.superiorskyblock;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.LocaleUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.registry.Registry;
@@ -113,6 +113,7 @@ public enum Locale {
     COMMAND_ARGUMENT_ALL_PLAYERS("*"),
     COMMAND_ARGUMENT_AMOUNT("amount"),
     COMMAND_ARGUMENT_BIOME("biome"),
+    COMMAND_ARGUMENT_COMMAND("command..."),
     COMMAND_ARGUMENT_DISCORD("discord..."),
     COMMAND_ARGUMENT_EFFECT("effect"),
     COMMAND_ARGUMENT_EMAIL("email"),
@@ -140,6 +141,9 @@ public enum Locale {
     COMMAND_ARGUMENT_SETTINGS("settings"),
     COMMAND_ARGUMENT_SIZE("size"),
     COMMAND_ARGUMENT_TIME("time"),
+    COMMAND_ARGUMENT_TITLE_DURATION("duration"),
+    COMMAND_ARGUMENT_TITLE_FADE_IN("fade-in"),
+    COMMAND_ARGUMENT_TITLE_FADE_OUT("fade-out"),
     COMMAND_ARGUMENT_UPGRADE_NAME("upgrade-name"),
     COMMAND_ARGUMENT_VALUE("value"),
     COMMAND_ARGUMENT_WARP_NAME("warp-name"),
@@ -166,6 +170,7 @@ public enum Locale {
     COMMAND_DESCRIPTION_ADMIN_CHEST,
     COMMAND_DESCRIPTION_ADMIN_CLEAR_GENERATOR,
     COMMAND_DESCRIPTION_ADMIN_CLOSE,
+    COMMAND_DESCRIPTION_ADMIN_CMD_ALL,
     COMMAND_DESCRIPTION_ADMIN_COUNT,
     COMMAND_DESCRIPTION_ADMIN_DEBUG,
     COMMAND_DESCRIPTION_ADMIN_DEL_WARP,
@@ -221,6 +226,8 @@ public enum Locale {
     COMMAND_DESCRIPTION_ADMIN_STATS,
     COMMAND_DESCRIPTION_ADMIN_SYNC_UPGRADES,
     COMMAND_DESCRIPTION_ADMIN_TELEPORT,
+    COMMAND_DESCRIPTION_ADMIN_TITLE,
+    COMMAND_DESCRIPTION_ADMIN_TITLE_ALL,
     COMMAND_DESCRIPTION_ADMIN_UNIGNORE,
     COMMAND_DESCRIPTION_ADMIN_UNLOCK_WORLD,
     COMMAND_DESCRIPTION_ADMIN_WITHDRAW,
@@ -305,6 +312,7 @@ public enum Locale {
     DISBAND_GIVE,
     DISBAND_GIVE_ALL,
     DISBAND_GIVE_OTHER,
+    DISBAND_ISLAND_BALANCE_REFUND,
     DISBAND_SET,
     DISBAND_SET_ALL,
     DISBAND_SET_OTHER,
@@ -329,8 +337,12 @@ public enum Locale {
     GENERATOR_UPDATED,
     GENERATOR_UPDATED_ALL,
     GENERATOR_UPDATED_NAME,
+    GLOBAL_COMMAND_EXECUTED,
+    GLOBAL_COMMAND_EXECUTED_NAME,
     GLOBAL_MESSAGE_SENT,
     GLOBAL_MESSAGE_SENT_NAME,
+    GLOBAL_TITLE_SENT,
+    GLOBAL_TITLE_SENT_NAME,
     GOT_BANNED,
     GOT_DEMOTED,
     GOT_EXPELLED,
@@ -351,6 +363,7 @@ public enum Locale {
     INVALID_EFFECT,
     INVALID_ENTITY,
     INVALID_ENVIRONMENT,
+    INVALID_INTERVAL,
     INVALID_ISLAND,
     INVALID_ISLAND_LOCATION,
     INVALID_ISLAND_OTHER,
@@ -372,6 +385,7 @@ public enum Locale {
     INVALID_SETTINGS,
     INVALID_SIZE,
     INVALID_SLOT,
+    INVALID_TITLE,
     INVALID_TOGGLE_MODE,
     INVALID_UPGRADE,
     INVALID_VISIT_LOCATION,
@@ -447,6 +461,8 @@ public enum Locale {
     ISLAND_OPENED,
     ISLAND_PREVIEW_CANCEL_DISTANCE,
     ISLAND_PREVIEW_CANCEL,
+    ISLAND_PREVIEW_CONFIRM_TEXT,
+    ISLAND_PREVIEW_CANCEL_TEXT,
     ISLAND_PREVIEW_START,
     ISLAND_PROTECTED,
     ISLAND_TEAM_STATUS_FOOTER,
@@ -607,6 +623,7 @@ public enum Locale {
     TELEPORT_OUTSIDE_ISLAND,
     TELEPORT_WARMUP,
     TELEPORT_WARMUP_CANCEL,
+    TITLE_SENT,
     TOGGLED_BYPASS_OFF,
     TOGGLED_BYPASS_ON,
     TOGGLED_FLY_OFF,
@@ -643,6 +660,7 @@ public enum Locale {
     WARP_CATEGORY_ICON_NEW_NAME,
     WARP_CATEGORY_ICON_NEW_TYPE,
     WARP_CATEGORY_ICON_UPDATED,
+    WARP_CATEGORY_ILLEGAL_NAME,
     WARP_CATEGORY_SLOT,
     WARP_CATEGORY_SLOT_ALREADY_TAKEN,
     WARP_CATEGORY_SLOT_SUCCESS,
@@ -653,6 +671,7 @@ public enum Locale {
     WARP_ICON_NEW_NAME,
     WARP_ICON_NEW_TYPE,
     WARP_ICON_UPDATED,
+    WARP_ILLEGAL_NAME,
     WARP_LOCATION_UPDATE,
     WARP_PUBLIC_UPDATE,
     WARP_PRIVATE_UPDATE,
@@ -687,8 +706,7 @@ public enum Locale {
     }
 
     public void send(SuperiorPlayer superiorPlayer, Object... objects){
-        if(superiorPlayer.isOnline())
-            send(superiorPlayer.asPlayer(), superiorPlayer.getUserLocale(), objects);
+        superiorPlayer.runIfOnline(player -> send(player, superiorPlayer.getUserLocale(), objects));
     }
 
     public void send(CommandSender sender, Object... objects){
@@ -752,7 +770,12 @@ public enum Locale {
 
             CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(langFile);
             InputStream inputStream = plugin.getResource("lang/" + langFile.getName());
-            cfg.syncWithConfig(langFile, inputStream == null ? plugin.getResource("lang/en-US.yml") : inputStream, "lang/en-US.yml");
+
+            try {
+                cfg.syncWithConfig(langFile, inputStream == null ? plugin.getResource("lang/en-US.yml") : inputStream, "lang/en-US.yml");
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
 
             for(Locale locale : values()){
                 if(cfg.isConfigurationSection(locale.name())){
@@ -778,7 +801,7 @@ public enum Locale {
     }
 
     public static void sendMessage(SuperiorPlayer superiorPlayer, String message, boolean translateColors){
-        sendMessage(superiorPlayer.asPlayer(), message, translateColors);
+        superiorPlayer.runIfOnline(player -> sendMessage(player, message, translateColors));
     }
 
     public static void sendMessage(CommandSender sender, String message, boolean translateColors){
@@ -786,7 +809,7 @@ public enum Locale {
     }
 
     public static void sendProtectionMessage(SuperiorPlayer superiorPlayer){
-        sendProtectionMessage(superiorPlayer.asPlayer(), superiorPlayer.getUserLocale());
+        superiorPlayer.runIfOnline(player -> sendProtectionMessage(player, superiorPlayer.getUserLocale()));
     }
 
     public static void sendProtectionMessage(Player player){

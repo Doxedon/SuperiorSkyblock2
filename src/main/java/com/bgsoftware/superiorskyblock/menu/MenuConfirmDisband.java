@@ -1,10 +1,11 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
+import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.events.EventsCaller;
 import com.bgsoftware.superiorskyblock.utils.islands.IslandUtils;
 import com.bgsoftware.superiorskyblock.utils.menus.MenuConverter;
@@ -14,6 +15,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.event.inventory.InventoryClickEvent;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,23 +32,31 @@ public final class MenuConfirmDisband extends SuperiorMenu {
     protected void onPlayerClick(InventoryClickEvent e) {
         Island island = superiorPlayer.getIsland();
 
+        if(island == null)
+            return;
+
         if(confirmSlot.contains(e.getRawSlot())){
             if(EventsCaller.callIslandDisbandEvent(superiorPlayer, island)){
                 IslandUtils.sendMessage(island, Locale.DISBAND_ANNOUNCEMENT, new ArrayList<>(), superiorPlayer.getName());
 
                 Locale.DISBANDED_ISLAND.send(superiorPlayer);
 
+                if(plugin.getSettings().disbandRefund > 0 && island.getOwner().isOnline()) {
+                    Locale.DISBAND_ISLAND_BALANCE_REFUND.send(island.getOwner(), StringUtils.format(island.getIslandBank()
+                            .getBalance().multiply(BigDecimal.valueOf(plugin.getSettings().disbandRefund))));
+                }
+
                 superiorPlayer.setDisbands(superiorPlayer.getDisbands() - 1);
 
                 previousMove = false;
-                superiorPlayer.asPlayer().closeInventory();
+                e.getWhoClicked().closeInventory();
 
                 island.disbandIsland();
             }
         }
         else if(cancelSlot.contains(e.getRawSlot())) {
             previousMove = false;
-            superiorPlayer.asPlayer().closeInventory();
+            e.getWhoClicked().closeInventory();
         }
     }
 
@@ -66,7 +76,11 @@ public final class MenuConfirmDisband extends SuperiorMenu {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         Registry<Character, List<Integer>> charSlots = FileUtils.loadGUI(menuConfirmDisband, "confirm-disband.yml", cfg);

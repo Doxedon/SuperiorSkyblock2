@@ -1,5 +1,7 @@
 package com.bgsoftware.superiorskyblock.nms;
 
+import com.bgsoftware.common.reflection.ReflectField;
+import com.bgsoftware.common.reflection.ReflectMethod;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.generator.WorldGenerator;
@@ -11,8 +13,6 @@ import com.bgsoftware.superiorskyblock.utils.chunks.ChunksTracker;
 import com.bgsoftware.superiorskyblock.utils.key.Key;
 import com.bgsoftware.superiorskyblock.utils.key.KeyMap;
 import com.bgsoftware.superiorskyblock.utils.objects.CalculatedChunk;
-import com.bgsoftware.superiorskyblock.utils.reflections.ReflectField;
-import com.bgsoftware.superiorskyblock.utils.reflections.ReflectMethod;
 import com.bgsoftware.superiorskyblock.utils.tags.ByteTag;
 import com.bgsoftware.superiorskyblock.utils.tags.CompoundTag;
 import com.bgsoftware.superiorskyblock.utils.tags.IntArrayTag;
@@ -36,6 +36,7 @@ import net.minecraft.server.v1_16_R3.ChunkCoordIntPair;
 import net.minecraft.server.v1_16_R3.ChunkRegionLoader;
 import net.minecraft.server.v1_16_R3.ChunkSection;
 import net.minecraft.server.v1_16_R3.Entity;
+import net.minecraft.server.v1_16_R3.EntityHuman;
 import net.minecraft.server.v1_16_R3.EnumSkyBlock;
 import net.minecraft.server.v1_16_R3.GameRules;
 import net.minecraft.server.v1_16_R3.HeightMap;
@@ -78,6 +79,7 @@ import org.bukkit.craftbukkit.v1_16_R3.util.UnsafeList;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
@@ -429,14 +431,27 @@ public final class NMSBlocks_v1_16_R3 implements NMSBlocks {
             Arrays.fill(chunk.getSections(), Chunk.a);
 
 
+
+
             try {
-                for(int i = 0; i < chunk.entitySlices.length; i++)
+                for(int i = 0; i < chunk.entitySlices.length; i++) {
+                    chunk.entitySlices[i].forEach(entity -> {
+                        if(!(entity instanceof EntityHuman))
+                            entity.dead = true;
+                    });
                     chunk.entitySlices[i] = new UnsafeList<>();
+                }
             }catch (Throwable ex){
                 try{
                     Collection[] arr = ENTITY_SLICE_ARRAY.get(chunk);
-                    for(int i = 0; i < arr.length; i++)
+                    for(int i = 0; i < arr.length; i++) {
+                        // noinspection unchecked
+                        arr[i].forEach(entity -> {
+                            if(!(entity instanceof EntityHuman))
+                                ((Entity) entity).dead = true;
+                        });
                         arr[i] = new net.minecraft.server.v1_16_R3.EntitySlice<>(Entity.class);
+                    }
                 }catch (Exception ex2){
                     ex2.printStackTrace();
                 }
@@ -668,19 +683,25 @@ public final class NMSBlocks_v1_16_R3 implements NMSBlocks {
         private static final Map<Long, CropsTickingTileEntity> tickingChunks = new HashMap<>();
         private static int random = ThreadLocalRandom.current().nextInt();
 
-        private final Island island;
-        private final Chunk chunk;
+        private final WeakReference<Island> island;
+        private final WeakReference<Chunk> chunk;
         private final int chunkX, chunkZ;
 
         private int currentTick = 0;
 
         private CropsTickingTileEntity(Island island, Chunk chunk){
             super(TileEntityTypes.COMMAND_BLOCK);
-            this.island = island;
-            this.chunk = chunk;
+            this.island = new WeakReference<>(island);
+            this.chunk = new WeakReference<>(chunk);
             this.chunkX = chunk.getPos().x;
             this.chunkZ = chunk.getPos().z;
             setLocation(chunk.getWorld(), new BlockPosition(chunkX << 4, 1, chunkZ << 4));
+
+            try {
+                // Not a method of Spigot - fixes https://github.com/OmerBenGera/SuperiorSkyblock2/issues/5
+                setCurrentChunk(chunk);
+            }catch (Throwable ignored){}
+
             world.tileEntityListTick.add(this);
         }
 
@@ -688,6 +709,14 @@ public final class NMSBlocks_v1_16_R3 implements NMSBlocks {
         public void tick() {
             if(++currentTick <= plugin.getSettings().cropsInterval)
                 return;
+
+            Chunk chunk = this.chunk.get();
+            Island island = this.island.get();
+
+            if(chunk == null || island == null){
+                world.tileEntityListTick.remove(this);
+                return;
+            }
 
             currentTick = 0;
 

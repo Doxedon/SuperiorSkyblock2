@@ -1,5 +1,7 @@
 package com.bgsoftware.superiorskyblock.nms;
 
+import com.bgsoftware.common.reflection.ReflectField;
+import com.bgsoftware.common.reflection.ReflectMethod;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.generator.WorldGenerator;
@@ -10,8 +12,6 @@ import com.bgsoftware.superiorskyblock.utils.chunks.ChunksTracker;
 import com.bgsoftware.superiorskyblock.utils.key.Key;
 import com.bgsoftware.superiorskyblock.utils.key.KeyMap;
 import com.bgsoftware.superiorskyblock.utils.objects.CalculatedChunk;
-import com.bgsoftware.superiorskyblock.utils.reflections.ReflectField;
-import com.bgsoftware.superiorskyblock.utils.reflections.ReflectMethod;
 import com.bgsoftware.superiorskyblock.utils.tags.ByteTag;
 import com.bgsoftware.superiorskyblock.utils.tags.CompoundTag;
 import com.bgsoftware.superiorskyblock.utils.tags.IntArrayTag;
@@ -74,6 +74,7 @@ import org.bukkit.craftbukkit.v1_13_R1.util.UnsafeList;
 import org.bukkit.entity.Minecart;
 import org.bukkit.entity.Player;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -417,8 +418,13 @@ public final class NMSBlocks_v1_13_R1 implements NMSBlocks {
             Arrays.fill(chunk.getSections(), Chunk.a);
 
             if(chunk instanceof Chunk) {
-                for(int i = 0; i < ((Chunk) chunk).entitySlices.length; i++)
+                for(int i = 0; i < ((Chunk) chunk).entitySlices.length; i++) {
+                    ((Chunk) chunk).entitySlices[i].forEach(entity -> {
+                        if(!(entity instanceof EntityHuman))
+                            entity.dead = true;
+                    });
                     ((Chunk) chunk).entitySlices[i] = new UnsafeList<>();
+                }
 
                 new HashSet<>(((Chunk) chunk).tileEntities.keySet()).forEach(((Chunk) chunk).world::n);
                 ((Chunk) chunk).tileEntities.clear();
@@ -587,16 +593,16 @@ public final class NMSBlocks_v1_13_R1 implements NMSBlocks {
         private static final Map<Long, CropsTickingTileEntity> tickingChunks = new HashMap<>();
         private static int random = ThreadLocalRandom.current().nextInt();
 
-        private final Island island;
-        private final Chunk chunk;
+        private final WeakReference<Island> island;
+        private final WeakReference<Chunk> chunk;
         private final int chunkX, chunkZ;
 
         private int currentTick = 0;
 
         private CropsTickingTileEntity(Island island, Chunk chunk){
             super(TileEntityTypes.w);
-            this.island = island;
-            this.chunk = chunk;
+            this.island = new WeakReference<>(island);
+            this.chunk = new WeakReference<>(chunk);
             this.chunkX = chunk.getPos().x;
             this.chunkZ = chunk.getPos().z;
             setWorld(chunk.getWorld());
@@ -609,6 +615,14 @@ public final class NMSBlocks_v1_13_R1 implements NMSBlocks {
         public void Y_() {
             if(++currentTick <= plugin.getSettings().cropsInterval)
                 return;
+
+            Chunk chunk = this.chunk.get();
+            Island island = this.island.get();
+
+            if(chunk == null || island == null){
+                world.tileEntityListTick.remove(this);
+                return;
+            }
 
             currentTick = 0;
 

@@ -98,11 +98,15 @@ COMMAND_ARGUMENT_ALL_ISLANDS: '*'
 COMMAND_ARGUMENT_ALL_PLAYERS: '*'
 COMMAND_ARGUMENT_AMOUNT: quantité
 COMMAND_ARGUMENT_BIOME: biome
+COMMAND_ARGUMENT_COMMAND: 'command...'
 COMMAND_ARGUMENT_DISCORD: discord
 COMMAND_ARGUMENT_EFFECT: effet-de-potion
 COMMAND_ARGUMENT_EMAIL: email
 COMMAND_ARGUMENT_ENTITY: entité
 COMMAND_ARGUMENT_TIME: temps
+COMMAND_ARGUMENT_TITLE_DURATION: 'durée'
+COMMAND_ARGUMENT_TITLE_FADE_IN: 'apparition-graduelle'
+COMMAND_ARGUMENT_TITLE_FADE_OUT: 'disparition-graduelle'
 COMMAND_ARGUMENT_ISLAND: ile
 COMMAND_ARGUMENT_ISLAND_NAME: nom-de-l'ile
 COMMAND_ARGUMENT_ISLAND_ROLE: rôle-sur-l'île
@@ -129,7 +133,7 @@ COMMAND_ARGUMENT_SIZE: taille
 COMMAND_ARGUMENT_UPGRADE_NAME: nom-de-l'amélioration
 COMMAND_ARGUMENT_VALUE: valeur
 COMMAND_ARGUMENT_WARP_NAME: nom-du-warp
-COMMAND_ARGUMENT_WARP_CATEGORY: 'warp-category'
+COMMAND_ARGUMENT_WARP_CATEGORY: 'catégorie-de-warp'
 COMMAND_ARGUMENT_WORLD: monde
 COMMAND_COOLDOWN_FORMAT: '&c&lErreur | &7Vous devez patienter {0} avant de réutiliser cette commande.'
 COMMAND_DESCRIPTION_ADMIN_DEBUG: Activer ou désactiver les informations de débogage.
@@ -150,6 +154,8 @@ COMMAND_DESCRIPTION_ADMIN_ADD_SPAWNER_RATES: Augmenter le multiplicateur de taux
 COMMAND_DESCRIPTION_ADMIN_ADD_TEAM_LIMIT: Augmenter la limite de membres pour l'île du joueur spécifié.
 COMMAND_DESCRIPTION_ADMIN_ADD_WARPS_LIMIT: Augmenter la limite de warps pour l'île du joueur spécifié.
 COMMAND_DESCRIPTION_ADMIN_TELEPORT: Se téléporter sur l'île d'un joueur.
+COMMAND_DESCRIPTION_ADMIN_TITLE: 'Envoyer un titre au joueur.'
+COMMAND_DESCRIPTION_ADMIN_TITLE_ALL: 'Envoyer un titre à tous les membres de l''île.'
 COMMAND_DESCRIPTION_ADMIN_PURGE: Purger les îles.
 COMMAND_DESCRIPTION_ADMIN_RANKUP: Augmenter une amélioration pour l'île spécifiée.
 COMMAND_DESCRIPTION_ADMIN_BONUS: Octroyer un bonus à un joueur.
@@ -157,6 +163,7 @@ COMMAND_DESCRIPTION_ADMIN_BYPASS: Activer/Désactiver le mode bypass.
 COMMAND_DESCRIPTION_ADMIN_CHEST: Ouvrir le stockage de l'île spécifiée.
 COMMAND_DESCRIPTION_ADMIN_CLEAR_GENERATOR: Réinitialiser le taux des générateurs pour l'île spécifié.
 COMMAND_DESCRIPTION_ADMIN_CLOSE: Fermer une île au public.
+COMMAND_DESCRIPTION_ADMIN_CMD_ALL: 'Execute a command for all members of islands.'
 COMMAND_DESCRIPTION_ADMIN_COUNT: Vérifier le nombre de blocs sur lîle spécifiée.
 COMMAND_DESCRIPTION_ADMIN_DEMOTE: Dégrader un membre de l'île d'un joueur.
 COMMAND_DESCRIPTION_ADMIN_DEPOSIT: Déposer de l'argent sur le compte de l'île d'un joueur.
@@ -288,6 +295,7 @@ DISBAND_ANNOUNCEMENT: '&e&lIle | &7Votre île a été supprimée par {0}.'
 DISBAND_GIVE: '&e&lIle | &7Vous avez reçu {0} suppressions d''île.'
 DISBAND_GIVE_ALL: '&e&lIle | &7Vous avez donné {0} suppressions d''île à tous les joueurs.'
 DISBAND_GIVE_OTHER: '&e&lIle | &7Vous avez donné {0} supressions d''île à {1}.'
+DISBAND_ISLAND_BALANCE_REFUND: '&7&oYour island was disbanded and ${0} dollars were refunded to your account from the island bank'
 DISBAND_SET: '&e&lIle | &7Votre nombre de suppressions d''île a été défini sur {0}.'
 DISBAND_SET_ALL: '&e&lIle | &7Vous avez défini le nombre de suppressions d''île de tous les joueurs sur {0}.'
 DISBAND_SET_OTHER: '&e&lIle | &7Vous avez défini le nombre de suppressions d''île de {0} sur {1}.'
@@ -314,9 +322,13 @@ GENERATOR_CLEARED_NAME: '&e&lIle | &7Nettoyage des taux des générateurs pour l
 GENERATOR_CLEARED_ALL: '&e&lIle | &7Nettoyage des taux des générateurs de toutes les îles.'
 GENERATOR_UPDATED: '&e&lIle | &7Taux du générateur modifié sur {0} pour l''île de {1}.'
 GENERATOR_UPDATED_NAME: '&e&lIle | &7Taux du générateur modifié sur {0} pour l''île de {1}.'
+GLOBAL_COMMAND_EXECUTED: '&e&lIsland | &7Successfully executed the command on {0}''s island members!'
+GLOBAL_COMMAND_EXECUTED_NAME: '&e&lIsland | &7Successfully executed the command on the island members of {0}!'
 GENERATOR_UPDATED_ALL: '&e&lIle | &7Taux du générateur modifié sur {0} pour toutes les îles.'
 GLOBAL_MESSAGE_SENT: '&e&lIle | &7Message envoyé à tous les membres de l''île de {0} !'
 GLOBAL_MESSAGE_SENT_NAME: '&e&lIle | &7Message envoyé à tous les membres de l''île {0} !'
+GLOBAL_TITLE_SENT: '&e&lIle | &7Envoi du titre aux membres de l''île de {0} !'
+GLOBAL_TITLE_SENT_NAME: '&e&lIle | &7Envoi du titre à tous les membres de l''île {0} !'
 GOT_BANNED: '&e&lIle | &7Vous avez été BANNI de l''île de {0}.'
 GOT_DEMOTED: '&e&lIle | &7Vous avez été rétrogradé au rôle de {0} sur votre île.'
 GOT_EXPELLED: '&e&lIle | &7&oVous avez été exclu de l''île par {0}.'
@@ -365,7 +377,8 @@ INVALID_SETTINGS: |
   &c&lErreur | &7Aucun paramètre ne porte le nom: {0}.
   &c&lErreur | &7Paramètres d'île: {1}
 INVALID_SIZE: '&c&lErreur | &7Taille invalide: {0}.'
-INVALID_SLOT: '&c&lError | &7Invalid slot {0}.'
+INVALID_SLOT: '&c&lErreur | &7Slot invalide {0}.'
+INVALID_TITLE: '&c&lErreur | &7Titre spécifié invalide.'
 INVALID_TOGGLE_MODE: '&c&lErreur | &7Impossible d''Activer/Désactiver: {0}.'
 INVALID_UPGRADE: |
   &c&lErreur | &7Aucune amélioration ne porte le nom {0}.
@@ -459,9 +472,11 @@ ISLAND_INFO_WORTH: '&e&lIle | &7Valeur: {0}'
 ISLAND_OPENED: '&e&lIle | &7L''île est désormais ouverte au public.'
 ISLAND_PREVIEW_CANCEL_DISTANCE: '&e&lPrévisualisation | &7Vous vous êtes trop éloigné(e). La prévisualisation à donc été désactivée.'
 ISLAND_PREVIEW_CANCEL: '&e&lPrévisualisation | &7Vous avez annulé(e) la prévisualisation.'
+ISLAND_PREVIEW_CONFIRM_TEXT: 'CONFIRMER'
+ISLAND_PREVIEW_CANCEL_TEXT: 'ANNULER'
 ISLAND_PREVIEW_START: |
   &e&lPrévisualisation | &7Vous avez débuté la prévisualisation de l'île {0}.
-  &e&lPrévisualisation | &7Tapez &a&lCONFIRM &7pour séléctionner cette île, ou &c&lCANCEL &7pour annuler la prévisualisation.
+  &e&lPrévisualisation | &7Tapez &a&lCONFIRMER &7pour séléctionner cette île, ou &c&lANNULER &7pour annuler la prévisualisation.
   &e&lPrévisualisation | &7Si vous quittez la zone de l'île, la prévisualisation sera désactivée.
 ISLAND_PROTECTED: '&c&lErreur | &7Cette île est protégée.'
 ISLAND_TEAM_STATUS_FOOTER: ''
@@ -628,6 +643,7 @@ TELEPORT_LOCATION_OUTSIDE_ISLAND: '&c&lErreur | &7Vous n''êtes pas sûr votre �
 TELEPORT_OUTSIDE_ISLAND: '&c&lErreur | &7Vous ne pouvez pas vous téléporter en dehors de votre zone de protection.'
 TELEPORT_WARMUP: '&7&oVous serez téléporté dans {0}... Ne bougez pas !'
 TELEPORT_WARMUP_CANCEL: '&7&oVous vous êtes déplacé, la téléportation a donc été annulée.'
+TITLE_SENT: '&e&lIle | &7Envoie du titré {0} effectué !'
 TELEPORTED_FAILED: '&e&lIle | &7Il semblerait que cette île ne soit pas sécurisée. Veuillez contacter un Administrateur.'
 TELEPORTED_SUCCESS: '&e&lIle | &7Vous avez été téléporté sur votre île.'
 TELEPORTED_TO_WARP: '&e&lIle | &7Vous avez été télporté au warp de l''île.'
@@ -672,6 +688,7 @@ WARP_CATEGORY_ICON_NEW_LORE: |
 WARP_CATEGORY_ICON_NEW_NAME: '&e&lWarps | &7Enter a name (Type "-cancel" to cancel):'
 WARP_CATEGORY_ICON_NEW_TYPE: '&e&lWarps | &7Enter a new material type (Type "-cancel" to cancel):'
 WARP_CATEGORY_ICON_UPDATED: '&e&lWarps | &7Successfully updated the category''s icon.'
+WARP_CATEGORY_ILLEGAL_NAME: '&c&lError | &7You can only use alphabetical letters, numbers and ''_'' for warp category names.'
 WARP_CATEGORY_SLOT: '&e&lWarps | &7Enter a new slot (Type "-cancel" to cancel):'
 WARP_CATEGORY_SLOT_ALREADY_TAKEN: '&c&lError | &7This slot is already taken by another category.'
 WARP_CATEGORY_SLOT_SUCCESS: '&e&lWarps | &7Successfully changed the category''s slot to {0}.'
@@ -684,6 +701,7 @@ WARP_ICON_NEW_LORE: |
 WARP_ICON_NEW_NAME: '&e&lWarps | &7Enter a name (Type "-cancel" to cancel):'
 WARP_ICON_NEW_TYPE: '&e&lWarps | &7Enter a new material type (Type "-cancel" to cancel):'
 WARP_ICON_UPDATED: '&e&lWarps | &7Successfully updated the warp''s icon.'
+WARP_ILLEGAL_NAME: '&c&lError | &7You can only use alphabetical letters, numbers and ''_'' for warp names.'
 WARP_LOCATION_UPDATE: '&e&lWarps | &7Successfully updated the warp''s location to your location.'
 WARP_PUBLIC_UPDATE: '&e&lWarps | &7Successfully opened the warp to the public.'
 WARP_PRIVATE_UPDATE: '&e&lWarps | &7Successfully closed the warp to the public.'

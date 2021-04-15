@@ -1,9 +1,9 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.items.ItemBuilder;
@@ -14,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
@@ -80,6 +81,11 @@ public final class MenuIslandCreation extends SuperiorMenu {
             }
         }
 
+        Player player = menu.superiorPlayer.asPlayer();
+
+        if(player == null)
+            return;
+
         String permission = (String) menu.getData(schematic + "-permission", "");
         if (menu.superiorPlayer.hasPermission(permission)) {
             BigDecimal bonusWorth = BigDecimal.valueOf((double) menu.getData(schematic + "-bonus-worth", 0D));
@@ -90,7 +96,7 @@ public final class MenuIslandCreation extends SuperiorMenu {
 
             SoundWrapper sound = (SoundWrapper) menu.getData(schematic + "-has-access-item-sound");
             if (sound != null)
-                sound.playSound(menu.superiorPlayer.asPlayer());
+                sound.playSound(player);
             //noinspection unchecked
             List<String> commands = (List<String>) menu.getData(schematic + "-has-access-item-commands");
             if (commands != null)
@@ -99,7 +105,7 @@ public final class MenuIslandCreation extends SuperiorMenu {
 
             if(fromInventory) {
                 menu.previousMove = false;
-                menu.superiorPlayer.asPlayer().closeInventory();
+                player.closeInventory();
             }
 
             Locale.ISLAND_CREATE_PROCCESS_REQUEST.send(menu.superiorPlayer);
@@ -108,7 +114,7 @@ public final class MenuIslandCreation extends SuperiorMenu {
         else{
             SoundWrapper sound = (SoundWrapper) menu.getData(schematic + "-no-access-item-sound");
             if(sound != null)
-                sound.playSound(menu.superiorPlayer.asPlayer());
+                sound.playSound(player);
             //noinspection unchecked
             List<String> commands = (List<String>) menu.getData(schematic + "-no-access-item-commands");
             if(commands != null)
@@ -140,7 +146,11 @@ public final class MenuIslandCreation extends SuperiorMenu {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         /*We must implement our own FileUtils.loadGUI for the menu, because of how complicated the menu is.*/

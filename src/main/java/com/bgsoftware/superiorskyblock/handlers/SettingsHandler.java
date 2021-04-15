@@ -1,10 +1,11 @@
 package com.bgsoftware.superiorskyblock.handlers;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.api.objects.Pair;
 import com.bgsoftware.superiorskyblock.utils.LocationUtils;
+import com.bgsoftware.superiorskyblock.utils.ServerVersion;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.key.Key;
 import com.bgsoftware.superiorskyblock.utils.key.KeyMap;
@@ -13,7 +14,6 @@ import com.bgsoftware.superiorskyblock.utils.registry.Registry;
 import com.bgsoftware.superiorskyblock.utils.tags.CompoundTag;
 import com.bgsoftware.superiorskyblock.utils.tags.ListTag;
 import com.bgsoftware.superiorskyblock.utils.upgrades.UpgradeValue;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,8 +33,6 @@ import java.util.stream.Collectors;
 
 @SuppressWarnings("WeakerAccess")
 public final class SettingsHandler extends AbstractHandler {
-
-    public static boolean PLUGIN_RELOAD = false;
 
     public final String databaseType;
     public final String databaseMySQLAddress;
@@ -78,14 +77,17 @@ public final class SettingsHandler extends AbstractHandler {
     public final String visitorsSignLine;
     public final String visitorsSignActive;
     public final String visitorsSignInactive;
-    public final int bankWorthRate;
+    public final double bankWorthRate;
     public final String islandWorldName;
     public final boolean netherWorldEnabled;
     public final boolean netherWorldUnlocked;
     public final String netherWorldName;
+    public final boolean netherSchematicOffset;
     public final boolean endWorldEnabled;
     public final boolean endWorldUnlocked;
     public final String endWorldName;
+    public final boolean endSchematicOffset;
+    public final boolean endDragonFight;
     public final boolean optimizeWorlds;
     public final String worldsDifficulty;
     public final String spawnLocation;
@@ -106,8 +108,10 @@ public final class SettingsHandler extends AbstractHandler {
     public final boolean banConfirm;
     public final boolean disbandConfirm;
     public final boolean kickConfirm;
+    public final boolean leaveConfirm;
     public final String spawnersProvider;
     public final boolean disbandInventoryClear;
+    public final double disbandRefund;
     public final boolean islandNamesRequiredForCreation;
     public final int islandNamesMaxLength;
     public final int islandNamesMinLength;
@@ -119,7 +123,6 @@ public final class SettingsHandler extends AbstractHandler {
     public final boolean teleportOnKick;
     public final boolean clearOnJoin;
     public final boolean rateOwnIsland;
-    public final boolean bonusAffectLevel;
     public final List<String> defaultSettings;
     public final boolean disableRedstoneOffline;
     public final boolean disableRedstoneAFK;
@@ -178,6 +181,7 @@ public final class SettingsHandler extends AbstractHandler {
     public final boolean warpCategories;
     public final boolean physicsListener;
     public final double chargeOnWarp;
+    public final boolean publicWarps;
 
     public SettingsHandler(SuperiorSkyblockPlugin plugin){
         super(plugin);
@@ -191,8 +195,12 @@ public final class SettingsHandler extends AbstractHandler {
         convertData(cfg);
         convertInteractables(plugin, cfg);
 
-        cfg.syncWithConfig(file, plugin.getResource("config.yml"),  "config.yml",
-                "ladder", "commands-cooldown", "containers", "event-commands", "command-aliases", "preview-islands");
+        try {
+            cfg.syncWithConfig(file, plugin.getResource("config.yml"), "config.yml",
+                    "ladder", "commands-cooldown", "containers", "event-commands", "command-aliases", "preview-islands");
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
 
         databaseType = cfg.getString("database.type");
         databaseMySQLAddress = cfg.getString("database.address");
@@ -251,7 +259,7 @@ public final class SettingsHandler extends AbstractHandler {
         islandsHeight = cfg.getInt("islands-height", 100);
         worldBordersEnabled = cfg.getBoolean("world-borders", true);
         stackedBlocksEnabled = cfg.getBoolean("stacked-blocks.enabled", true);
-        stackedBlocksDisabledWorlds = cfg.getStringList("stacked-blocks.disfabled-worlds");
+        stackedBlocksDisabledWorlds = cfg.getStringList("stacked-blocks.disabled-worlds");
         whitelistedStackedBlocks = new KeySet(cfg.getStringList("stacked-blocks.whitelisted"));
         stackedBlocksName = StringUtils.translateColors(cfg.getString("stacked-blocks.custom-name"));
         stackedBlocksLimits = new KeyMap<>();
@@ -278,20 +286,20 @@ public final class SettingsHandler extends AbstractHandler {
         visitorsSignLine = cfg.getString("visitors-sign.line", "[Welcome]");
         visitorsSignActive = StringUtils.translateColors(cfg.getString("visitors-sign.active", "&a[Welcome]"));
         visitorsSignInactive = StringUtils.translateColors(cfg.getString("visitors-sign.inactive", "&c[Welcome]"));
-        bankWorthRate = cfg.getInt("bank-worth-rate", 1000);
+        int bankWorthRate = cfg.getInt("bank-worth-rate", 1000);
+        this.bankWorthRate = bankWorthRate == 0 ? 0D : 1D / bankWorthRate;
         islandWorldName = cfg.getString("worlds.normal-world", "SuperiorWorld");
         netherWorldEnabled = cfg.getBoolean("worlds.nether.enabled", false);
-        if(PLUGIN_RELOAD && netherWorldEnabled && !Bukkit.getAllowNether())
-            SuperiorSkyblockPlugin.log("&cSeems like you have nether disabled in server.properties - nether islands will be disabled aswell.");
         netherWorldUnlocked = cfg.getBoolean("worlds.nether.unlock", true);
         String netherWorldName = cfg.getString("worlds.nether.name", "");
         this.netherWorldName = netherWorldName.isEmpty() ? islandWorldName + "_nether" : netherWorldName;
+        netherSchematicOffset = cfg.getBoolean("worlds.nether.schematic-offset", true);
         endWorldEnabled = cfg.getBoolean("worlds.end.enabled", false);
-        if(PLUGIN_RELOAD && netherWorldEnabled && !Bukkit.getAllowEnd())
-            SuperiorSkyblockPlugin.log("&cSeems like you have end disabled in server.properties - end islands will be disabled aswell.");
         endWorldUnlocked = cfg.getBoolean("worlds.end.unlock", false);
         String endWorldName = cfg.getString("worlds.end.name", "");
         this.endWorldName = endWorldName.isEmpty() ? islandWorldName + "_the_end" : endWorldName;
+        endSchematicOffset = cfg.getBoolean("worlds.end.schematic-offset", true);
+        endDragonFight = endWorldEnabled && cfg.getBoolean("worlds.end.dragon-fight", false) && ServerVersion.isAtLeast(ServerVersion.v1_9);
         optimizeWorlds = cfg.getBoolean("worlds.optimize", false);
         worldsDifficulty = cfg.getString("worlds.difficulty", "EASY");
         spawnLocation = cfg.getString("spawn.location", "SuperiorWorld, 0, 100, 0, 0, 0");
@@ -315,8 +323,10 @@ public final class SettingsHandler extends AbstractHandler {
         banConfirm = cfg.getBoolean("ban-confirm");
         disbandConfirm = cfg.getBoolean("disband-confirm");
         kickConfirm = cfg.getBoolean("kick-confirm");
+        leaveConfirm = cfg.getBoolean("leave-confirm");
         spawnersProvider = cfg.getString("spawners-provider", "AUTO");
         disbandInventoryClear = cfg.getBoolean("disband-inventory-clear", true);
+        disbandRefund = Math.max(0, Math.min(100, cfg.getDouble("disband-refund"))) / 100D;
         islandNamesRequiredForCreation = cfg.getBoolean("island-names.required-for-creation", true);
         islandNamesMaxLength = cfg.getInt("island-names.max-length", 16);
         islandNamesMinLength = cfg.getInt("island-names.min-length", 3);
@@ -328,7 +338,6 @@ public final class SettingsHandler extends AbstractHandler {
         teleportOnKick = cfg.getBoolean("teleport-on-kick", false);
         clearOnJoin = cfg.getBoolean("clear-on-join", false);
         rateOwnIsland = cfg.getBoolean("rate-own-island", false);
-        bonusAffectLevel = cfg.getBoolean("bonus-affect-level", true);
         defaultSettings = cfg.getStringList("default-settings");
         defaultGenerator = new KeyMap[3];
         if(cfg.isConfigurationSection("default-values.generator")){
@@ -446,6 +455,7 @@ public final class SettingsHandler extends AbstractHandler {
         warpCategories = cfg.getBoolean("warp-categories", true);
         physicsListener = cfg.getBoolean("physics-listener", true);
         chargeOnWarp = cfg.getDouble("charge-on-warp", 0D);
+        publicWarps = cfg.getBoolean("public-warps");
     }
 
     @Override
@@ -453,7 +463,7 @@ public final class SettingsHandler extends AbstractHandler {
         throw new UnsupportedOperationException("Not supported for SettingsHandler");
     }
 
-    public void updateValue(String path, Object value){
+    public void updateValue(String path, Object value) throws IOException {
         SuperiorSkyblockPlugin plugin = SuperiorSkyblockPlugin.getPlugin();
         File file = new File(plugin.getDataFolder(), "config.yml");
 
@@ -562,7 +572,11 @@ public final class SettingsHandler extends AbstractHandler {
 
         commentedConfig.set("interactables", cfg.getStringList("interactables"));
 
-        commentedConfig.save(file);
+        try {
+            commentedConfig.save(file);
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
     }
 
     private List<String> loadInteractables(SuperiorSkyblockPlugin plugin){

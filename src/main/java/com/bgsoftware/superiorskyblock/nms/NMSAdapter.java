@@ -15,12 +15,14 @@ import org.bukkit.block.CreatureSpawner;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Animals;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 
@@ -31,6 +33,8 @@ public interface NMSAdapter {
     Key getBlockKey(ChunkSnapshot chunkSnapshot, int x, int y, int z);
 
     int getSpawnerDelay(CreatureSpawner creatureSpawner);
+
+    void setSpawnerDelay(CreatureSpawner creatureSpawner, int spawnDelay);
 
     void setWorldBorder(SuperiorPlayer superiorPlayer, Island island);
 
@@ -89,5 +93,11 @@ public interface NMSAdapter {
     void sendActionBar(Player player, String message);
 
     void sendTitle(Player player, String title, String subtitle, int fadeIn, int duration, int fadeOut);
+
+    default void setCustomModel(ItemMeta itemMeta, int customModel){
+
+    }
+
+    int getPortalTicks(Entity entity);
 
 }

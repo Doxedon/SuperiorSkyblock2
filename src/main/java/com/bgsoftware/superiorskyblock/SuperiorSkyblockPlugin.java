@@ -1,5 +1,7 @@
 package com.bgsoftware.superiorskyblock;
 
+import com.bgsoftware.common.reflection.ReflectField;
+import com.bgsoftware.common.updater.Updater;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblock;
 import com.bgsoftware.superiorskyblock.api.SuperiorSkyblockAPI;
 import com.bgsoftware.superiorskyblock.api.handlers.MenusManager;
@@ -25,6 +27,7 @@ import com.bgsoftware.superiorskyblock.handlers.UpgradesHandler;
 import com.bgsoftware.superiorskyblock.listeners.BlocksListener;
 import com.bgsoftware.superiorskyblock.listeners.ChunksListener;
 import com.bgsoftware.superiorskyblock.listeners.CustomEventsListener;
+import com.bgsoftware.superiorskyblock.listeners.DragonListener;
 import com.bgsoftware.superiorskyblock.listeners.GeneratorsListener;
 import com.bgsoftware.superiorskyblock.listeners.MenusListener;
 import com.bgsoftware.superiorskyblock.listeners.PlayersListener;
@@ -34,14 +37,16 @@ import com.bgsoftware.superiorskyblock.listeners.UpgradesListener;
 import com.bgsoftware.superiorskyblock.metrics.Metrics;
 import com.bgsoftware.superiorskyblock.nms.NMSAdapter;
 import com.bgsoftware.superiorskyblock.nms.NMSBlocks;
+import com.bgsoftware.superiorskyblock.nms.NMSDragonFight;
 import com.bgsoftware.superiorskyblock.nms.NMSHolograms;
 import com.bgsoftware.superiorskyblock.nms.NMSTags;
+import com.bgsoftware.superiorskyblock.upgrades.loaders.VaultUpgradeCostLoader;
+import com.bgsoftware.superiorskyblock.upgrades.loaders.PlaceholdersUpgradeCostLoader;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.ServerVersion;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
 import com.bgsoftware.superiorskyblock.utils.events.EventsCaller;
 import com.bgsoftware.superiorskyblock.utils.items.HeadUtils;
-import com.bgsoftware.superiorskyblock.utils.reflections.ReflectField;
 import com.bgsoftware.superiorskyblock.utils.registry.Registry;
 import com.bgsoftware.superiorskyblock.tasks.CalcTask;
 import com.bgsoftware.superiorskyblock.utils.chunks.ChunksProvider;
@@ -53,6 +58,8 @@ import com.bgsoftware.superiorskyblock.utils.threads.Executor;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
+import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.generator.ChunkGenerator;
@@ -68,6 +75,8 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
 
     private static final ReflectField<SuperiorSkyblock> PLUGIN = new ReflectField<>(SuperiorSkyblockAPI.class, SuperiorSkyblock.class, "plugin");
     private static SuperiorSkyblockPlugin plugin;
+
+    private final Updater updater = new Updater(this, "superiorskyblock2");
 
     private final GridHandler gridHandler = new GridHandler(this);
     private final BlockValuesHandler blockValuesHandler = new BlockValuesHandler(this);
@@ -90,6 +99,7 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
     private NMSTags nmsTags;
     private NMSBlocks nmsBlocks;
     private NMSHolograms nmsHolograms;
+    private NMSDragonFight nmsDragonFight;
 
     private ChunkGenerator worldGenerator = null;
 
@@ -146,12 +156,20 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
             loadSortingTypes();
             loadIslandFlags();
             loadIslandPrivileges();
+            loadUpgradeCostLoaders();
 
             EnchantsUtils.registerGlowEnchantment();
 
             EventsCaller.callPluginInitializeEvent(this);
 
-            providersHandler.prepareWorlds();
+            try{
+                providersHandler.prepareWorlds();
+            }catch (RuntimeException ex){
+                shouldEnable = false;
+                new HandlerLoadException(ex.getMessage(), HandlerLoadException.ErrorLevel.SERVER_SHUTDOWN).printStackTrace();
+                Bukkit.shutdown();
+                return;
+            }
 
             reloadPlugin(true);
 
@@ -159,6 +177,8 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
                 safeEventsRegister(new BlocksListener(this));
                 safeEventsRegister(new ChunksListener(this));
                 safeEventsRegister(new CustomEventsListener(this));
+                if(settingsHandler.endDragonFight)
+                    safeEventsRegister(new DragonListener(this));
                 safeEventsRegister(new GeneratorsListener(this));
                 safeEventsRegister(new MenusListener(this));
                 safeEventsRegister(new PlayersListener(this));
@@ -166,16 +186,17 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
                 safeEventsRegister(new SettingsListener(this));
                 safeEventsRegister(new UpgradesListener(this));
             }catch (RuntimeException ex){
+                shouldEnable = false;
                 new HandlerLoadException("Cannot load plugin due to a missing event: " + ex.getMessage() + " - contact @Ome_R!",
                         HandlerLoadException.ErrorLevel.CONTINUE).printStackTrace();
                 Bukkit.shutdown();
                 return;
             }
 
-            if (Updater.isOutdated()) {
+            if (updater.isOutdated()) {
                 log("");
-                log("A new version is available (v" + Updater.getLatestVersion() + ")!");
-                log("Version's description: \"" + Updater.getVersionDescription() + "\"");
+                log("A new version is available (v" + updater.getLatestVersion() + ")!");
+                log("Version's description: \"" + updater.getVersionDescription() + "\"");
                 log("");
             }
 
@@ -250,6 +271,10 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
         }
     }
 
+    public Updater getUpdater() {
+        return updater;
+    }
+
     private boolean loadNMSAdapter(){
         String version = getServer().getClass().getPackage().getName().split("\\.")[3];
         try {
@@ -257,6 +282,35 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
             nmsTags = (NMSTags) Class.forName("com.bgsoftware.superiorskyblock.nms.NMSTags_" + version).newInstance();
             nmsBlocks = (NMSBlocks) Class.forName("com.bgsoftware.superiorskyblock.nms.NMSBlocks_" + version).newInstance();
             nmsHolograms = (NMSHolograms) Class.forName("com.bgsoftware.superiorskyblock.nms.NMSHolograms_" + version).newInstance();
+            if(new SettingsHandler(this).endDragonFight)
+                nmsDragonFight = (NMSDragonFight) Class.forName("com.bgsoftware.superiorskyblock.nms.NMSDragonFight_" + version).newInstance();
+            else
+                nmsDragonFight = new NMSDragonFight() {
+                    @Override
+                    public void startDragonBattle(Island island, Location location) {
+
+                    }
+
+                    @Override
+                    public void removeDragonBattle(Island island) {
+
+                    }
+
+                    @Override
+                    public void tickBattles() {
+
+                    }
+
+                    @Override
+                    public void setDragonPhase(EnderDragon enderDragon, Object phase) {
+
+                    }
+
+                    @Override
+                    public void awardTheEndAchievement(Player player) {
+
+                    }
+                };
             return true;
         }catch(Exception ex){
             log("SuperiorSkyblock doesn't support " + version + " - shutting down...");
@@ -312,9 +366,7 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
     public void reloadPlugin(boolean loadGrid){
         HeadUtils.readTextures(this);
 
-        SettingsHandler.PLUGIN_RELOAD = true;
         settingsHandler = new SettingsHandler(this);
-        SettingsHandler.PLUGIN_RELOAD = false;
 
         blockValuesHandler.loadData();
         upgradesHandler.loadData();
@@ -329,7 +381,7 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
             gridHandler.loadData();
         }
         else{
-            Executor.sync(gridHandler::updateSpawn);
+            Executor.sync(gridHandler::updateSpawn, 1L);
             gridHandler.syncUpgrades();
         }
 
@@ -441,6 +493,10 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
 
     public NMSHolograms getNMSHolograms() {
         return nmsHolograms;
+    }
+
+    public NMSDragonFight getNMSDragonFight() {
+        return nmsDragonFight;
     }
 
     public String getFileName(){
@@ -560,6 +616,11 @@ public final class SuperiorSkyblockPlugin extends JavaPlugin implements Superior
         IslandPrivilege.register("VALUABLE_BREAK");
         IslandPrivilege.register("VILLAGER_TRADING");
         IslandPrivilege.register("WITHDRAW_MONEY");
+    }
+
+    private void loadUpgradeCostLoaders(){
+        upgradesHandler.registerUpgradeCostLoader("money", new VaultUpgradeCostLoader());
+        upgradesHandler.registerUpgradeCostLoader("placeholders", new PlaceholdersUpgradeCostLoader());
     }
 
     public static void log(String message){

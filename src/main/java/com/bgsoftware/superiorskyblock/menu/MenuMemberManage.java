@@ -1,8 +1,8 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.api.island.Island;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.hooks.PlaceholderHook;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.commands.CommandUtils;
@@ -53,6 +53,8 @@ public final class MenuMemberManage extends SuperiorMenu {
         else if(kickSlot.contains(e.getRawSlot())){
             if(plugin.getSettings().kickConfirm){
                 Island island = superiorPlayer.getIsland();
+                if(island == null)
+                    return;
                 if(IslandUtils.checkKickRestrictions(superiorPlayer, island, targetPlayer)) {
                     previousMove = false;
                     MenuConfirmKick.openInventory(superiorPlayer, this, targetPlayer);
@@ -85,7 +87,11 @@ public final class MenuMemberManage extends SuperiorMenu {
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
 
         if(convertOldGUI(cfg)){
-            cfg.save(file);
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
         }
 
         Registry<Character, List<Integer>> charSlots = FileUtils.loadGUI(menuMemberManage, "member-manage.yml", cfg);

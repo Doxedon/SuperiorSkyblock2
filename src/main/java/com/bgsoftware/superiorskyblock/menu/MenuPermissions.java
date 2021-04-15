@@ -1,5 +1,6 @@
 package com.bgsoftware.superiorskyblock.menu;
 
+import com.bgsoftware.common.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.Locale;
 import com.bgsoftware.superiorskyblock.SuperiorSkyblockPlugin;
 import com.bgsoftware.superiorskyblock.api.island.Island;
@@ -7,7 +8,6 @@ import com.bgsoftware.superiorskyblock.api.island.IslandPrivilege;
 import com.bgsoftware.superiorskyblock.api.island.PermissionNode;
 import com.bgsoftware.superiorskyblock.api.island.PlayerRole;
 import com.bgsoftware.superiorskyblock.api.wrappers.SuperiorPlayer;
-import com.bgsoftware.superiorskyblock.config.CommentedConfiguration;
 import com.bgsoftware.superiorskyblock.island.SPlayerRole;
 import com.bgsoftware.superiorskyblock.utils.FileUtils;
 import com.bgsoftware.superiorskyblock.utils.StringUtils;
@@ -112,7 +112,7 @@ public final class MenuPermissions extends PagedSuperiorMenu<IslandPrivilege> {
 
             SoundWrapper soundWrapper = (SoundWrapper) getData(permissionName + "-has-access-sound");
             if (soundWrapper != null)
-                soundWrapper.playSound(superiorPlayer.asPlayer());
+                soundWrapper.playSound(event.getWhoClicked());
             //noinspection unchecked
             List<String> commands = (List<String>) getData(permissionName + "-has-access-commands");
             if (commands != null)
@@ -127,7 +127,7 @@ public final class MenuPermissions extends PagedSuperiorMenu<IslandPrivilege> {
 
             SoundWrapper soundWrapper = (SoundWrapper) getData(permissionName + "-no-access-sound");
             if (soundWrapper != null)
-                soundWrapper.playSound(superiorPlayer.asPlayer());
+                soundWrapper.playSound(event.getWhoClicked());
             //noinspection unchecked
             List<String> commands = (List<String>) getData(permissionName + "-no-access-commands");
             if (commands != null)
@@ -212,10 +212,20 @@ public final class MenuPermissions extends PagedSuperiorMenu<IslandPrivilege> {
             FileUtils.saveResource("menus/permissions.yml");
 
         CommentedConfiguration cfg = CommentedConfiguration.loadConfiguration(file);
-        cfg.syncWithConfig(file, FileUtils.getResource("menus/permissions.yml"), "permissions.yml", "items");
 
-        if(convertOldGUI(cfg))
-            cfg.save(file);
+        try {
+            cfg.syncWithConfig(file, FileUtils.getResource("menus/permissions.yml"), additionalMenuSections("permissions"));
+        }catch (Exception ex){
+            ex.printStackTrace();
+        }
+
+        if(convertOldGUI(cfg)){
+            try {
+                cfg.save(file);
+            }catch (Exception ex){
+                ex.printStackTrace();
+            }
+        }
 
         noRolePermission = cfg.getString("messages.no-role-permission", "");
         exactRolePermission = cfg.getString("messages.exact-role-permission", "");
@@ -281,8 +291,8 @@ public final class MenuPermissions extends PagedSuperiorMenu<IslandPrivilege> {
             String permission = islandPrivilege.getName().toLowerCase();
             if (cfg.contains("permissions." + permission)) {
                 ConfigurationSection permissionSection = cfg.getConfigurationSection("permissions." + permission);
-                menuPermissions.addData(permission + "-has-access-sound", FileUtils.getSound(permissionSection.getConfigurationSection("access.sound")));
-                menuPermissions.addData(permission + "-has-access-commands", cfg.getStringList("access.commands"));
+                menuPermissions.addData(permission + "-has-access-sound", FileUtils.getSound(permissionSection.getConfigurationSection("has-access.sound")));
+                menuPermissions.addData(permission + "-has-access-commands", cfg.getStringList("has-access.commands"));
                 menuPermissions.addData(permission + "-no-access-sound", FileUtils.getSound(permissionSection.getConfigurationSection("no-access.sound")));
                 menuPermissions.addData(permission + "-no-access-commands", cfg.getStringList("no-access.commands"));
                 menuPermissions.addData(permission + "-permission-enabled", FileUtils.getItemStack("permissions.yml", permissionSection.getConfigurationSection("permission-enabled")));
